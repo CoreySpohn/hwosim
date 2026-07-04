@@ -214,6 +214,8 @@ def register(seam: str, name: str, info: SeamInfo):
 
 _DEFAULT_ADAPTER_MODULES: dict[str, tuple[str, ...]] = {
     "certification": ("hwosim.certify",),
+    "context": ("hwosim.context",),
+    "cost": ("hwosim.account",),
 }
 
 for _seam, _modules in _DEFAULT_ADAPTER_MODULES.items():

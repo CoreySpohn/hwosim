@@ -56,9 +56,18 @@ class TestConstruction:
         assert ref.params_dict == {"alpha": 2, "zeta": 1}
 
     def test_params_must_be_primitive(self):
-        """Non-primitive parameters are rejected with guidance."""
+        """Non-primitive, non-sequence parameters are rejected with guidance."""
         with pytest.raises(TypeError, match="primitive"):
-            SeamRef.make("observation", "toy", grid=[1, 2, 3])
+            SeamRef.make("observation", "toy", grid={"a": 1})
+
+    def test_sequence_params_canonicalize(self):
+        """Lists of primitives become tuples and survive the json round trip."""
+        from hwosim.spec import config_from_json, to_json
+
+        ref = SeamRef.make("context", "toy", target_ids=[3, 1, 2])
+        assert ref.params_dict["target_ids"] == (3, 1, 2)
+        config = FidelityConfig.make("sample", context=ref)
+        assert config_from_json(to_json(config)) == config
 
     def test_config_make_normalizes_refs(self):
         """A bare SeamRef becomes a SeamChoice with truth == model."""

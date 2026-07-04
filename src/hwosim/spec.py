@@ -17,15 +17,25 @@ from hwosim.wiring import WiringReport, validate_config
 _PRIMITIVES = (str, int, float, bool, type(None))
 
 
-def _check_primitive_pairs(pairs, what: str):
+def _canonical_value(value, what: str):
+    if isinstance(value, _PRIMITIVES):
+        return value
+    if isinstance(value, (list, tuple)):
+        return tuple(_canonical_value(item, what) for item in value)
+    raise TypeError(
+        f"{what} must be a primitive (str/int/float/bool/None) or a sequence "
+        f"of primitives, got {type(value).__name__}; reference large values "
+        "by file path"
+    )
+
+
+def _canonical_pairs(pairs, what: str) -> tuple:
+    canonical = []
     for key, value in pairs:
         if not isinstance(key, str):
             raise TypeError(f"{what} keys must be strings, got {key!r}")
-        if not isinstance(value, _PRIMITIVES):
-            raise TypeError(
-                f"{what}['{key}'] must be a primitive (str/int/float/bool/None), "
-                f"got {type(value).__name__}; reference large values by file path"
-            )
+        canonical.append((key, _canonical_value(value, f"{what}['{key}']")))
+    return tuple(canonical)
 
 
 @dataclass(frozen=True)
@@ -50,7 +60,7 @@ class SeamRef:
         name: The implementation's registered name.
         version: Optional version constraint recorded for provenance.
         params: Constructor parameters as sorted (key, value) pairs of
-            primitives.
+            primitives or nested tuples of primitives.
     """
 
     seam: str
@@ -60,9 +70,8 @@ class SeamRef:
 
     @classmethod
     def make(cls, seam: str, name: str, /, **params) -> "SeamRef":
-        """Build a SeamRef with keyword parameters, sorted and checked."""
-        pairs = tuple(sorted(params.items()))
-        _check_primitive_pairs(pairs, "params")
+        """Build a SeamRef with keyword parameters, sorted and canonicalized."""
+        pairs = _canonical_pairs(sorted(params.items()), "params")
         return cls(seam=seam, name=name, params=pairs)
 
     @property
@@ -191,8 +200,7 @@ class MissionSpec:
         """Build a MissionSpec from dictionary-friendly arguments."""
         budget_pairs = tuple(sorted((budgets or {}).items()))
         prior_pairs = tuple(sorted((target_priors or {}).items()))
-        extra_pairs = tuple(sorted(extra.items()))
-        _check_primitive_pairs(extra_pairs, "extra")
+        extra_pairs = _canonical_pairs(sorted(extra.items()), "extra")
         return cls(
             name=name,
             duration_d=duration_d,
@@ -261,7 +269,7 @@ def _decode(data):
             seam=data["seam"],
             name=data["name"],
             version=data["version"],
-            params=tuple((k, v) for k, v in data["params"]),
+            params=_canonical_pairs(data["params"], "params"),
         )
     if kind == "SeamChoice":
         model = data["model"]
@@ -286,7 +294,7 @@ def _decode(data):
             target_priors=tuple(
                 (tid, _decode(ref)) for tid, ref in data["target_priors"]
             ),
-            extra=tuple((k, v) for k, v in data["extra"]),
+            extra=_canonical_pairs(data["extra"], "extra"),
         )
     raise TypeError(f"unknown declarative type tag '{kind}'")
 
