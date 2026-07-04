@@ -4,10 +4,10 @@ build-backend = "hatchling.build"
 
 [project]
 name = "hwosim"
-description = "A JAX-based toolkit for end-to-end HWO mission simulations, integrating yippy, orbix, coronagraphoto, and coronalyze."
+description = "A JAX-based closed-loop mission simulator and yield calculator for exoplanet direct imaging, composing the HWO simulation suite."
 authors = [{ name = "Corey Spohn", email = "corey.a.spohn@nasa.gov" }]
 dynamic = ['readme', 'version']
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = { file = "LICENSE" }
 classifiers = [
   "Development Status :: 3 - Alpha",
@@ -20,12 +20,21 @@ dependencies = [
   "equinox",
   "jax",
   "jaxlib",
+  "hwoutils",
+  "optixstuff",
   "yippy",
   "orbix",
+  "skyscapes",
+  "jaxedith",
+  "photomancy",
+  "planit-py",
   "coronagraphoto",
+  "coronachrome",
   "coronalyze",
 ]
 [project.optional-dependencies]
+optics = ["physicaloptix"]
+retrieval = ["exojax"]
 dev = ["pre-commit"]
 docs = [
   "sphinx",
