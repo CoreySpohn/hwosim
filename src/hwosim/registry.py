@@ -210,3 +210,12 @@ REGISTRY = Registry()
 def register(seam: str, name: str, info: SeamInfo):
     """Register an implementation on the default registry (class decorator)."""
     return REGISTRY.register(seam, name, info)
+
+
+_DEFAULT_ADAPTER_MODULES: dict[str, tuple[str, ...]] = {
+    "certification": ("hwosim.certify",),
+}
+
+for _seam, _modules in _DEFAULT_ADAPTER_MODULES.items():
+    for _module in _modules:
+        REGISTRY.add_module(_seam, _module)
