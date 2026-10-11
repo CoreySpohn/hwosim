@@ -2,6 +2,8 @@
 
 import importlib
 import inspect
+import os
+import subprocess
 import sys
 import warnings
 from pathlib import Path
@@ -20,6 +22,7 @@ MODULES = (
     "data",
     "dist",
     "engines",
+    "engines.analytic",
     "engines.mc",
     "errors",
     "io",
@@ -28,6 +31,7 @@ MODULES = (
     "observe",
     "policy",
     "registry",
+    "reporting",
     "rng",
     "seams",
     "spec",
@@ -60,6 +64,57 @@ def test_submodules_are_identical(alias, name):
     for attr, value in vars(new).items():
         if not attr.startswith("_") or inspect.isclass(value):
             assert getattr(old, attr) is value
+
+
+@pytest.mark.parametrize(
+    "first_import",
+    [
+        "import hwosim",
+        "import spaceodyssey",
+        "import spaceodyssey.engines.analytic",
+    ],
+)
+@pytest.mark.parametrize(
+    "analytic_import",
+    ["import hwosim.engines.analytic", "from hwosim.engines import analytic"],
+)
+@pytest.mark.parametrize("lookup_namespace", ["hwosim", "spaceodyssey"])
+@pytest.mark.parametrize("lookup_order", ["before", "after", "both"])
+def test_analytic_import_orders(
+    first_import, analytic_import, lookup_namespace, lookup_order
+):
+    """Fresh imports and lazy lookups share one integrate engine registration."""
+    lookup = (
+        f'import {lookup_namespace}; {lookup_namespace}.engines.get_engine("integrate")'
+    )
+    statements = [first_import]
+    if lookup_order in ("before", "both"):
+        statements.append(lookup)
+    statements.append(analytic_import)
+    if lookup_order in ("after", "both"):
+        statements.append(lookup)
+    statements.extend(
+        [
+            "import sys",
+            "import hwosim.engines.analytic",
+            "import spaceodyssey.engines.analytic",
+            'old = sys.modules["hwosim.engines.analytic"]',
+            'new = sys.modules["spaceodyssey.engines.analytic"]',
+            "assert old is new",
+            "assert hwosim.engines is spaceodyssey.engines",
+            'assert spaceodyssey.engines.get_engine("integrate") is new.run_integrate',
+            'assert hwosim.engines.get_engine("integrate") is new.run_integrate',
+            'assert spaceodyssey.engines.ENGINES["integrate"] is old.run_integrate',
+        ]
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", "\n".join(statements)],
+        env=os.environ,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
 
 
 def test_fresh_import_warns_once_at_importer():
