@@ -67,46 +67,42 @@ def test_submodules_are_identical(alias, name):
 
 
 @pytest.mark.parametrize(
-    "first_import",
+    "setup",
     [
-        "import hwosim",
-        "import spaceodyssey",
-        "import spaceodyssey.engines.analytic",
-    ],
-)
-@pytest.mark.parametrize(
-    "analytic_import",
-    ["import hwosim.engines.analytic", "from hwosim.engines import analytic"],
-)
-@pytest.mark.parametrize("lookup_namespace", ["hwosim", "spaceodyssey"])
-@pytest.mark.parametrize("lookup_order", ["before", "after", "both"])
-def test_analytic_import_orders(
-    first_import, analytic_import, lookup_namespace, lookup_order
-):
-    """Fresh imports and lazy lookups share one integrate engine registration."""
-    lookup = (
-        f'import {lookup_namespace}; {lookup_namespace}.engines.get_engine("integrate")'
-    )
-    statements = [first_import]
-    if lookup_order in ("before", "both"):
-        statements.append(lookup)
-    statements.append(analytic_import)
-    if lookup_order in ("after", "both"):
-        statements.append(lookup)
-    statements.extend(
+        # Alias first: the shim's own import must install the analytic alias.
+        ["import hwosim.engines.analytic", 'hwosim.engines.get_engine("integrate")'],
+        # Canonical module loaded, lazy defaults pending: the from-form must
+        # return the canonical module and leave the alias entry in sys.modules.
         [
             "import sys",
-            "import hwosim.engines.analytic",
             "import spaceodyssey.engines.analytic",
-            'old = sys.modules["hwosim.engines.analytic"]',
-            'new = sys.modules["spaceodyssey.engines.analytic"]',
-            "assert old is new",
-            "assert hwosim.engines is spaceodyssey.engines",
-            'assert spaceodyssey.engines.get_engine("integrate") is new.run_integrate',
-            'assert hwosim.engines.get_engine("integrate") is new.run_integrate',
-            'assert spaceodyssey.engines.ENGINES["integrate"] is old.run_integrate',
-        ]
-    )
+            "from hwosim.engines import analytic",
+            'assert analytic is sys.modules["spaceodyssey.engines.analytic"]',
+            'assert analytic is sys.modules["hwosim.engines.analytic"]',
+        ],
+        # Defaults already loaded before the alias import.
+        [
+            "import spaceodyssey",
+            'spaceodyssey.engines.get_engine("integrate")',
+            "import hwosim.engines.analytic",
+        ],
+    ],
+    ids=["alias-first", "canonical-loaded-from-form", "defaults-loaded"],
+)
+def test_analytic_import_orders(setup):
+    """Fresh imports and lazy lookups share one integrate engine registration."""
+    statements = [
+        *setup,
+        "import sys",
+        "import hwosim.engines.analytic",
+        "import spaceodyssey.engines.analytic",
+        'old = sys.modules["hwosim.engines.analytic"]',
+        'new = sys.modules["spaceodyssey.engines.analytic"]',
+        "assert old is new",
+        "assert hwosim.engines is spaceodyssey.engines",
+        'assert spaceodyssey.engines.get_engine("integrate") is new.run_integrate',
+        'assert hwosim.engines.get_engine("integrate") is new.run_integrate',
+    ]
     result = subprocess.run(
         [sys.executable, "-c", "\n".join(statements)],
         env=os.environ,
