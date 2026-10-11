@@ -1,115 +1,62 @@
-"""hwosim: closed-loop mission simulation and yield estimation for direct imaging.
+"""Deprecated alias of spaceodyssey; migrate imports to that package.
 
-The package is three thin things plus adapters: a vocabulary (the mission
-data model and the seam interfaces), a registry and resolver (named seam
-implementations compiled from declarative configuration by ``build``), and
-engines (one run callable per outcome operator, all emitting one report
-schema). Physics, inference, and policy live in the wider simulation suite
-and enter through adapters; if a module here starts accumulating physics, it
-is in the wrong package.
+Submodules are aliases in sys.modules, rather than copied implementations or
+wrapper modules. This preserves every object, including private names and
+mutable registries, and prevents code from executing under two namespaces.
+Root exports refer to the same canonical objects. The local _version module
+is retained for hatch-vcs; the public API follows spaceodyssey.__all__.
 """
 
-from hwosim._version import __version__
-from hwosim.account import ConstantOverheads, Ledger
-from hwosim.belief import MissionBelief, TargetBelief
-from hwosim.build import Mission, ModelStack, TruthStack, build
-from hwosim.certify import AbstractCertificate, CertificateState, SnrThreshold
-from hwosim.context import AbstractContextProvider, AlwaysObservable
-from hwosim.data import Observation, SummaryDataset
-from hwosim.dist import AbstractPredictive, GaussianSummary
-from hwosim.engines import get_engine, register_engine, run
-from hwosim.errors import RegistryError, UnsupportedOperator, WiringError
-from hwosim.io import RunManifest, read_manifest, write_run
-from hwosim.loop import (
-    DETECTION_CERTIFICATE,
-    MissionState,
-    observe,
-    run_mission,
-    step,
-)
-from hwosim.metrics import YieldSummary, summarize
-from hwosim.observe import AbstractMeasurement
-from hwosim.registry import (
-    REGISTRY,
-    RegisteredImpl,
-    Registry,
-    SeamInfo,
-    register,
-)
-from hwosim.rng import Purpose, stream
-from hwosim.seams import DATA_PLANE_EDGES, KNOWN_OPERATORS, SEAMS
-from hwosim.spec import (
-    FidelityConfig,
-    FileRef,
-    MissionSpec,
-    SeamChoice,
-    SeamRef,
-    config_from_json,
-    content_hash,
-    spec_from_json,
-    to_json,
-)
-from hwosim.universe import AbstractUniverseSource, FixedUniverse, Universe
-from hwosim.wiring import WiringFailure, WiringReport
+import importlib as _importlib
+import sys as _sys
+import warnings as _warnings
 
-__all__ = [
-    "DATA_PLANE_EDGES",
-    "DETECTION_CERTIFICATE",
-    "KNOWN_OPERATORS",
-    "REGISTRY",
-    "SEAMS",
-    "AbstractCertificate",
-    "AbstractContextProvider",
-    "AbstractMeasurement",
-    "AbstractPredictive",
-    "AbstractUniverseSource",
-    "AlwaysObservable",
-    "CertificateState",
-    "ConstantOverheads",
-    "FidelityConfig",
-    "FileRef",
-    "FixedUniverse",
-    "GaussianSummary",
-    "Ledger",
-    "Mission",
-    "MissionBelief",
-    "MissionSpec",
-    "MissionState",
-    "ModelStack",
-    "Observation",
-    "Purpose",
-    "RegisteredImpl",
-    "Registry",
-    "RegistryError",
-    "RunManifest",
-    "SeamChoice",
-    "SeamInfo",
-    "SeamRef",
-    "SnrThreshold",
-    "SummaryDataset",
-    "TargetBelief",
-    "TruthStack",
-    "Universe",
-    "UnsupportedOperator",
-    "WiringError",
-    "WiringFailure",
-    "WiringReport",
-    "YieldSummary",
-    "__version__",
+import spaceodyssey as _spaceodyssey
+
+_warnings.warn(
+    "hwosim is deprecated; import spaceodyssey instead. "
+    "Removal will occur once no consumer imports hwosim, "
+    "and no earlier than spaceodyssey 0.3.0.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
+_SUBMODULES = (
+    "account",
+    "aliases",
+    "belief",
     "build",
-    "config_from_json",
-    "content_hash",
-    "get_engine",
+    "certify",
+    "context",
+    "contracts",
+    "data",
+    "dist",
+    "engines",
+    "engines.mc",
+    "errors",
+    "io",
+    "loop",
+    "metrics",
     "observe",
-    "read_manifest",
-    "register",
-    "register_engine",
-    "run",
-    "run_mission",
-    "spec_from_json",
-    "step",
-    "stream",
-    "summarize",
-    "to_json",
-    "write_run",
-]
+    "policy",
+    "registry",
+    "rng",
+    "seams",
+    "spec",
+    "testing",
+    "universe",
+    "wiring",
+)
+
+for _name in _SUBMODULES:
+    _module = _importlib.import_module(f"spaceodyssey.{_name}")
+    _sys.modules[f"{__name__}.{_name}"] = _module
+    if "." not in _name:
+        globals()[_name] = _module
+
+# Apply exports last: build and observe are functions in the canonical root API.
+__all__ = _spaceodyssey.__all__
+for _name in __all__:
+    globals()[_name] = getattr(_spaceodyssey, _name)
+
+del _name, _module

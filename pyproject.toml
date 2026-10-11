@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "hwosim"
-description = "A JAX-based closed-loop mission simulator and yield calculator for exoplanet direct imaging, composing the HWO simulation suite."
+description = "Deprecated alias of spaceodyssey for astronomical observing campaigns."
 authors = [{ name = "Corey Spohn", email = "corey.a.spohn@nasa.gov" }]
 dynamic = ['readme', 'version']
 requires-python = ">=3.11"
@@ -16,35 +16,12 @@ classifiers = [
   "Programming Language :: Python :: 3",
   "Topic :: Scientific/Engineering :: Astronomy",
 ]
-dependencies = [
-  "equinox",
-  "jax",
-  "jaxlib",
-  "hwoutils",
-  "optixstuff",
-  "yippy",
-  "orbix",
-  "skyscapes",
-  "jaxedith",
-  "photomancy",
-  "planit-py",
-  "coronagraphoto",
-  "coronachrome",
-  "coronalyze",
-]
+dependencies = ["spaceodyssey"]
 [project.optional-dependencies]
 optics = ["physicaloptix"]
 retrieval = ["exojax"]
 dev = ["pre-commit"]
-docs = [
-  "sphinx",
-  "myst-nb",
-  "sphinx-book-theme",
-  "sphinx-autoapi",
-  "sphinx_autodoc_typehints",
-  "ipython",
-  "matplotlib",
-]
+docs = ["sphinx"]
 test = ["nox", "pytest", "hypothesis", "pytest-cov"]
 
 [project.urls]
